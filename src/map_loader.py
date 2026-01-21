@@ -1,3 +1,5 @@
+# map_loader.py
+
 import yaml
 import numpy as np
 from PIL import Image

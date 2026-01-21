@@ -1,3 +1,5 @@
+# gui.py
+
 import sys
 import numpy as np
 import math
@@ -364,8 +366,8 @@ class MainWindow(QMainWindow):
         top_layout.addWidget(self.canvas, 3)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["Index", "X", "Y", "Yaw (rad)", "Speed (m/s)"])
+        self.table.setColumnCount(8)
+        self.table.setHorizontalHeaderLabels(["Index", "s (m)", "X", "Y", "Psi (rad)", "Kappa (rad/m)", "vx (m/s)", "ax (m/s^2)"])
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -859,43 +861,42 @@ class MainWindow(QMainWindow):
 
     def update_table(self):
         """
-        Refresh the table with original waypoints and derived yaw/segment speed.
+        Refresh the table with MPPI path fields.
         """
         wps = self.canvas.path_model.waypoints
-        seg_speeds = self.canvas.path_model.segment_speeds
-        if len(wps) < 1:
-            self.table.clearContents()
-            self.table.setRowCount(0)
-            return
-
-        # Compute yaw for each waypoint using neighbors
-        def yaw_at(idx):
-            if len(wps) == 1:
-                return 0.0
-            prev_idx = max(0, idx - 1)
-            next_idx = min(len(wps) - 1, idx + 1)
-            dx = wps[next_idx][0] - wps[prev_idx][0]
-            dy = wps[next_idx][1] - wps[prev_idx][1]
-            return math.atan2(dy, dx)
-
+        # Use simple sparse data we computed for waypoints
+        waypoint_data = self.canvas.path_model.waypoint_data
+        
         self.table.clearContents()
         self.table.setRowCount(len(wps))
+        
+        if len(wps) == 0:
+            return
 
         for i, (x, y) in enumerate(wps):
-            yaw_val = yaw_at(i)
-            speed_val = seg_speeds[i] if i < len(seg_speeds) else (seg_speeds[-1] if seg_speeds else None)
+            s_val = 0.0
+            psi_val = 0.0
+            k_val = 0.0
+            v_val = 0.0
+            ax_val = 0.0
+            
+            # Direct mapping by index if lengths match
+            if waypoint_data and i < len(waypoint_data):
+                pd = waypoint_data[i]
+                s_val = pd['s_m']
+                psi_val = pd['psi_rad']
+                k_val = pd['kappa_radpm']
+                v_val = pd['vx_mps']
+                ax_val = pd['ax_mps2']
 
-            idx_item = QTableWidgetItem(str(i))
-            x_item = QTableWidgetItem(f"{x:.3f}")
-            y_item = QTableWidgetItem(f"{y:.3f}")
-            yaw_item = QTableWidgetItem(f"{yaw_val:.3f}")
-            speed_item = QTableWidgetItem("-" if speed_val is None else f"{speed_val:.3f}")
-
-            self.table.setItem(i, 0, idx_item)
-            self.table.setItem(i, 1, x_item)
-            self.table.setItem(i, 2, y_item)
-            self.table.setItem(i, 3, yaw_item)
-            self.table.setItem(i, 4, speed_item)
+            self.table.setItem(i, 0, QTableWidgetItem(str(i)))
+            self.table.setItem(i, 1, QTableWidgetItem(f"{s_val:.2f}"))
+            self.table.setItem(i, 2, QTableWidgetItem(f"{x:.3f}"))
+            self.table.setItem(i, 3, QTableWidgetItem(f"{y:.3f}"))
+            self.table.setItem(i, 4, QTableWidgetItem(f"{psi_val:.3f}"))
+            self.table.setItem(i, 5, QTableWidgetItem(f"{k_val:.3f}"))
+            self.table.setItem(i, 6, QTableWidgetItem(f"{v_val:.2f}"))
+            self.table.setItem(i, 7, QTableWidgetItem(f"{ax_val:.2f}"))
 
         self.table.resizeColumnsToContents()
         if self.canvas.highlight_index >= len(wps):

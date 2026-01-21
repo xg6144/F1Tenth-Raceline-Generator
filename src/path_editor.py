@@ -245,9 +245,9 @@ class PathModel:
                 writer = csv.writer(f)
                 # Header
                 writer.writerow(['s_m', 'x_m', 'y_m', 'psi_rad', 'kappa_radpm', 'vx_mps', 'ax_mps2'])
-                # Export only user waypoints (requested by user)
-                # Use self.waypoint_data instead of self.path_data
-                data_curr = self.waypoint_data if self.waypoint_data else self.path_data
+                writer.writerow(['s_m', 'x_m', 'y_m', 'psi_rad', 'kappa_radpm', 'vx_mps', 'ax_mps2'])
+                # Export dense path data (requested by user)
+                data_curr = self.path_data
                 
                 for row in data_curr:
                     writer.writerow([
